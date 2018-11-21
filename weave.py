@@ -227,12 +227,12 @@ class EntryExitScenario(Scenario):
             "2": ["inflow_highway", "left", "center", "diverge"],
             "3": ["inflow_merge", "merge", "center", "right"],
             "4": ["inflow_merge", "merge", "center", "diverge"],
-            "inflow_highway": ["inflow_highway", "left", "center", "diverge"],
-            "left": ["left"],  # TODO: complete routes
-            "center": ["center"],
+            "inflow_highway": ["inflow_highway", "left", "center", "right"],
+            "left": ["left", "center", "right"],  # TODO: complete routes
+            "center": ["center", "right"],
             "right": ["right"],
-            "inflow_merge": ["inflow_merge","merge","center","right"],
-            "merge": ["merge"],
+            "inflow_merge": ["inflow_merge", "merge", "center", "right"],
+            "merge": ["merge", "center", "right"],
             "diverge": ["diverge"]
         }
 
