@@ -96,10 +96,29 @@ class WaveAttenuationMergePOEnv(Env):
         # TODO: bind by 0->1, and denormalize based on what each
         # TODO: of acceleration, lane change, and communication want
         return Box(
-            low=-abs(self.env_params.additional_params["max_decel"]),
-            high=self.env_params.additional_params["max_accel"],
-            shape=(self.num_rl, ),
+            low=0,
+            high=1,
+            shape=(3 * self.num_rl, ),
             dtype=np.float32)
+
+    def denormalize(self, value, action_type):
+        '''Helper function used to denormalized the 0-1 value of action space
+        value: value between 0 and 1
+        type: type of the action: 1 for acceleration, 2 for lane change and 3 for communication'''
+        if action_type == 1:
+            return value * (self.env_params.additional_params["max_accel"] +
+                            abs(self.env_params.additional_params["max_decel"])) +\
+                   -abs(self.env_params.additional_params["max_decel"])
+        elif action_type == 2:
+            if value < 1/3:
+                return -1
+            elif value <= 2/3:
+                return 0
+            else:
+                return 1
+        elif action_type == 3:
+            # TODO: define communication variable range
+            return 0
 
     @property
     def observation_space(self):
@@ -113,9 +132,10 @@ class WaveAttenuationMergePOEnv(Env):
             # ignore rl vehicles outside the network
             if rl_id not in self.vehicles.get_rl_ids():
                 continue
-            self.apply_acceleration([rl_id], [rl_actions[i]])
-            self.communication.append(rl_actions[2 * self.num_rl + i])
+            self.apply_acceleration([rl_id], [self.denormalize(rl_actions[i], 1)])
             # TODO: add lane change action
+            self.apply_lane_change([rl_id], [self.denormalize(rl_actions[1 * self.num_rl + i], 2)])
+            self.communication.append(self.denormalize(rl_actions[2 * self.num_rl + i], 3))
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -161,9 +181,14 @@ class WaveAttenuationMergePOEnv(Env):
             observation[5 * i + 4] = follow_head / max_length
             observation[5 * i + 5] = comm
             # TODO: try position, lane, lane leaders and followers, route (1, 2, 3, 4)
-            observation[5 * i + 6] = rl_id  # FIXME: this is a string, not int
+            observation[5 * i + 6] = self.only_numerics(rl_id)  # FIXME: this is a string, not int
 
         return observation
+
+    @staticmethod
+    def only_numerics(seq):
+        seq_type = type(seq)
+        return seq_type().join(filter(seq_type.isdigit, seq))
 
     def compute_reward(self, rl_actions, **kwargs):
         """See class definition."""
@@ -185,16 +210,14 @@ class WaveAttenuationMergePOEnv(Env):
         This method performs to auxiliary tasks:
 
         * Define which vehicles are observed for visualization purposes.
-        * Maintains the "rl_veh" and "rl_queue" variables to ensure the RL
-          vehicles that are represented in the state space does not change
-          until one of the vehicles in the state space leaves the network.
-          Then, the next vehicle in the queue is added to the state space and
-          provided with actions from the policy.
-        """
-        # add rl vehicles that just entered the network into the rl queue
-        for veh_id in self.vehicles.get_rl_ids():
-            if veh_id not in list(self.rl_queue) + self.rl_veh:
-                self.rl_queue.append(veh_id)
+* Maintains the "rl_veh" and "rl_queue" variables to ensure the RL
+vehicles that are represented in the state space does not change
+until one of the vehicles in the state space leaves the network.
+Then, the next vehicle in the queue is added to the state space and
+provided with actions from the policy.         """         # add rl vehicles
+that just entered the network into the rl queue         for veh_id in
+self.vehicles.get_rl_ids():             if veh_id not in list(self.rl_queue) +
+self.rl_veh:                 self.rl_queue.append(veh_id)
 
         # remove rl vehicles that exited the network
         for veh_id in list(self.rl_queue):

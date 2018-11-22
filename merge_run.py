@@ -15,7 +15,7 @@ from routing_controllers import WeaveRouter
 from merge import WaveAttenuationMergePOEnv, ADDITIONAL_ENV_PARAMS
 
 # inflow rate at the highway
-FLOW_RATE = 250
+FLOW_RATE = 300
 
 
 def merge_example(render=None):
@@ -37,7 +37,9 @@ def merge_example(render=None):
         render=True,
         emission_path="./data/",
         sim_step=0.2,
-        restart_instance=False)
+        restart_instance=False,
+        lateral_resolution=0.2,
+    )
 
     if render is not None:
         sumo_params.render = render
@@ -46,7 +48,7 @@ def merge_example(render=None):
     vehicles.add(
         veh_id="1",
         acceleration_controller=(IDMController, {
-            "noise": 0.2
+        #    "noise": 0.2
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -55,7 +57,7 @@ def merge_example(render=None):
     vehicles.add(
         veh_id="2",
         acceleration_controller=(IDMController, {
-            "noise": 0.2
+        #    "noise": 0.2
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -64,7 +66,7 @@ def merge_example(render=None):
     vehicles.add(
         veh_id="3",
         acceleration_controller=(IDMController, {
-            "noise": 0.2
+        #    "noise": 0.2
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -73,7 +75,7 @@ def merge_example(render=None):
     vehicles.add(
         veh_id="4",
         acceleration_controller=(IDMController, {
-            "noise": 0.2
+        #    "noise": 0.2
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -101,13 +103,13 @@ def merge_example(render=None):
     inflow.add(
         veh_type="3",
         edge="inflow_merge",
-        vehs_per_hour=50,  # TODO: change
+        vehs_per_hour=FLOW_RATE * 0.3,  # TODO: change
         departLane="free",
         departSpeed=7.5)
     inflow.add(
         veh_type="4",
         edge="inflow_merge",
-        vehs_per_hour=50,  # TODO: change
+        vehs_per_hour=FLOW_RATE * 0.1,  # TODO: change
         departLane="free",
         departSpeed=7.5)
 
