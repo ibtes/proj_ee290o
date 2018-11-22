@@ -104,7 +104,7 @@ class WaveAttenuationMergePOEnv(Env):
     @property
     def observation_space(self):
         """See class definition."""
-        return Box(low=0, high=1, shape=(7 * self.num_rl, ), dtype=np.float32)
+        return Box(low=0, high=1, shape=(6 * self.num_rl, ), dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
         """See class definition."""
@@ -126,7 +126,7 @@ class WaveAttenuationMergePOEnv(Env):
         max_speed = self.scenario.max_speed
         max_length = self.scenario.length
 
-        observation = [0 for _ in range(6 * self.num_rl)]
+        observation = [0 for _ in range(7 * self.num_rl)]
         for i, rl_id in enumerate(self.rl_veh):
             this_speed = self.vehicles.get_speed(rl_id)
             lead_id = self.vehicles.get_leader(rl_id)
@@ -212,6 +212,7 @@ class WaveAttenuationMergePOEnv(Env):
         # specify observed vehicles
         for veh_id in self.leader + self.follower:
             self.vehicles.set_observed(veh_id)
+        print (self.rl_veh,self.num_rl)
 
     def reset(self):
         """See parent class.

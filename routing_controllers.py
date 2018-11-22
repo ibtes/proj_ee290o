@@ -75,12 +75,12 @@ class WeaveRouter(BaseRouter):
         else:
             raise TypeError("oops")
 
-        print(route, expected_route)
+        # print(route, expected_route)
 
         if route != expected_route and (
                 (type_id in ['1', '2'] and edge == 'inflow_highway')
                 or (type_id in ['3', '4'] and edge == 'inflow_merge')):
-            print("woop")
+            # print("woop")
             return expected_route
         else:
             return None
