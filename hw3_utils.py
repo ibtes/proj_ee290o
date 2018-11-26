@@ -4,7 +4,7 @@ from flow.core.params import SumoParams, EnvParams, \
 from flow.core.vehicles import Vehicles
 from flow.core.experiment import SumoExperiment
 from weave import EntryExitScenario, ADDITIONAL_NET_PARAMS
-from flow.controllers import IDMController
+from flow.controllers import IDMController, RLController
 from routing_controllers import WeaveRouter
 from merge import WaveAttenuationMergePOEnv, ADDITIONAL_ENV_PARAMS
 
@@ -36,7 +36,8 @@ def get_params(render=False):
         render=False,
         sim_step=0.4,
         sumo_binary="sumo-gui" if render else "sumo",
-        seed=0
+        seed=0,
+        restart_instance=True
     )
     # sumo_params = SumoParams(
     #     render=True,
@@ -47,8 +48,8 @@ def get_params(render=False):
     vehicles = Vehicles()
     vehicles.add(
         veh_id="1",
-        acceleration_controller=(IDMController, {
-            "noise": 0.2
+        acceleration_controller=(RLController, {
+            
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -56,8 +57,8 @@ def get_params(render=False):
         num_vehicles=5)
     vehicles.add(
         veh_id="2",
-        acceleration_controller=(IDMController, {
-            "noise": 0.2
+        acceleration_controller=(RLController, {
+            
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -65,8 +66,8 @@ def get_params(render=False):
         num_vehicles=5)
     vehicles.add(
         veh_id="3",
-        acceleration_controller=(IDMController, {
-            "noise": 0.2
+        acceleration_controller=(RLController, {
+            
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",
@@ -74,8 +75,8 @@ def get_params(render=False):
         num_vehicles=5)
     vehicles.add(
         veh_id="4",
-        acceleration_controller=(IDMController, {
-            "noise": 0.2
+        acceleration_controller=(RLController, {
+            
         }),
         routing_controller=(WeaveRouter, {}),
         speed_mode="all_checks",

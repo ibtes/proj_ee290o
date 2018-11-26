@@ -106,16 +106,14 @@ class WaveAttenuationMergePOEnv(Env):
         value: value between 0 and 1
         type: type of the action: 1 for acceleration, 2 for lane change and 3 for communication'''
         if action_type == 1:
-            return value * (self.env_params.additional_params["max_accel"] +
+            return np.array(value)*(self.env_params.additional_params["max_accel"] +
                             abs(self.env_params.additional_params["max_decel"])) +\
                    -abs(self.env_params.additional_params["max_decel"])
         elif action_type == 2:
-            if value < 1/3:
-                return -1
-            elif value <= 2/3:
-                return 0
-            else:
-                return 1
+            value[np.where(value>=2/3)]=1
+            value[np.where(value<=1/3)]=-1
+            value[np.where((value>=1/3)&(value<=2/3))]=0
+            return value
         elif action_type == 3:
             # TODO: define communication variable range
             return 0
@@ -127,15 +125,15 @@ class WaveAttenuationMergePOEnv(Env):
 
     def _apply_rl_actions(self, rl_actions):
         """See class definition."""
-        self.communication = []
-        for i, rl_id in enumerate(self.rl_veh):
-            # ignore rl vehicles outside the network
-            if rl_id not in self.vehicles.get_rl_ids():
-                continue
-            self.apply_acceleration([rl_id], [self.denormalize(rl_actions[i], 1)])
-            # TODO: add lane change action
-            self.apply_lane_change([rl_id], [self.denormalize(rl_actions[1 * self.num_rl + i], 2)])
-            self.communication.append(self.denormalize(rl_actions[2 * self.num_rl + i], 3))
+        rl_actions=np.array(rl_actions)/2+0.5
+        self.apply_acceleration(self.vehicles.get_rl_ids(), 
+                                self.denormalize(rl_actions[:self.vehicles.num_rl_vehicles], 1))
+        self.apply_lane_change(self.vehicles.get_rl_ids(), 
+                               self.denormalize(rl_actions[self.num_rl: self.num_rl + self.vehicles.num_rl_vehicles], 2))
+
+        # self.communication = []
+        # for i, rl_id in enumerate(self.rl_veh):
+            # self.communication.append(self.denormalize(rl_actions[2 * self.num_rl + i], 3))
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -236,8 +234,7 @@ class WaveAttenuationMergePOEnv(Env):
         # specify observed vehicles
         for veh_id in self.leader + self.follower:
             self.vehicles.set_observed(veh_id)
-        print (self.rl_veh,self.rl_queue)
-
+        
     def reset(self):
         """See parent class.
 

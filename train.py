@@ -141,7 +141,7 @@ class DirectPolicyAlgorithm(object):
             output_mean = tf.layers.dense(
                 inputs=last_layer,
                 units=args["num_actions"],
-                activation=None)
+                activation=tf.nn.tanh)
 
         if args["stochastic"]:
             ################################################################
@@ -243,11 +243,21 @@ class DirectPolicyAlgorithm(object):
             steps += 1
 
             # compute the action given the state
+            a1=[]
+            a2=[]
+            a3=[]
+            a4=[]
             action=[]
             cleanState=self.cleanState(state)
             for cs in cleanState:
                 ac=self.compute_action([cs])
-                action.append(ac[0])
+                a1.append(ac[0][0])
+                a2.append(ac[0][1])
+                a3.append(ac[0][2])
+                a4.append(ac[0][0])
+                a4.append(ac[0][1])
+                a4.append(ac[0][2])
+            action=a1+a2+a3
             # action = self.compute_action([self.cleanState(state)])
             # action=action[0]
             # input(action)
@@ -257,7 +267,7 @@ class DirectPolicyAlgorithm(object):
             # v,l_v,l_h,f_v,f_h,comm,id
             # add to the samples list
             states.append(state)
-            actions.append(action)
+            actions.append(a4)
             next_states.append(next_state)
             rewards.append(reward)
             dones.append(done)
@@ -271,27 +281,27 @@ class DirectPolicyAlgorithm(object):
         
         veh_traj_obj={}
         for i in range(len(states)):
-            for j in range(len(states[i]/7)):
+            for j in range(int(len(states[i])/7)):
                 num_nonzero= np.count_nonzero(states[i][j*7:j*7+7])
                 if (num_nonzero==0):
                     pass
                 else:
                     veh_id=states[i][j*7+6]
                     if veh_id not in veh_traj_obj:
-                        veh_traj_obj[veh_id]={"states":[],"actions":[],"rewards":[],"next_states":[],"done":[]}
-                    veh_traj_obj[veh_id]["states"].append(states[i][j*7:j*7+6])
-                    veh_traj_obj[veh_id]["done"].append(done[i])
-                    veh_traj_obj[veh_id]["actions"].append(actions[i])
-                    veh_traj_obj[veh_id]["rewards"].append(rewards[i])
-                    veh_traj_obj[veh_id]["next_states"].append(next_states[i][j*7:j*7+6])
+                        veh_traj_obj[veh_id]={"state":[],"action":[],"reward":[],"next_state":[],"done":[]}
+                    veh_traj_obj[veh_id]["state"].append(states[i][j*7:j*7+6])
+                    veh_traj_obj[veh_id]["done"].append(dones[i])
+                    veh_traj_obj[veh_id]["action"].append(actions[i][j*3:j*3+3])
+                    veh_traj_obj[veh_id]["reward"].append(rewards[i])
+                    veh_traj_obj[veh_id]["next_state"].append(next_states[i][j*7:j*7+6])
         
         trajectory=[]
         for elem in veh_traj_obj:
-            veh_traj_obj[elem]["states"]=np.array(veh_traj_obj[elem]["states"], dtype=np.float32)
-            veh_traj_obj[elem]["rewards"]=np.array(veh_traj_obj[elem]["rewards"], dtype=np.float32)
-            veh_traj_obj[elem]["actions"]=np.array(veh_traj_obj[elem]["actions"], dtype=np.float32)
+            veh_traj_obj[elem]["state"]=np.array(veh_traj_obj[elem]["state"], dtype=np.float32)
+            veh_traj_obj[elem]["reward"]=np.array(veh_traj_obj[elem]["reward"], dtype=np.float32)
+            veh_traj_obj[elem]["action"]=np.array(veh_traj_obj[elem]["action"], dtype=np.float32)
             veh_traj_obj[elem]["done"]=np.array(veh_traj_obj[elem]["done"], dtype=np.float32)
-            veh_traj_obj[elem]["next_states"]=np.array(veh_traj_obj[elem]["next_states"], dtype=np.float32)
+            veh_traj_obj[elem]["next_state"]=np.array(veh_traj_obj[elem]["next_state"], dtype=np.float32)
             trajectory.append(veh_traj_obj[elem])
             
         # create the output trajectory
@@ -395,6 +405,7 @@ class REINFORCE(DirectPolicyAlgorithm):
                     steps_so_far +=  n_s["action"].shape[0]
                     samples.append(n_s)
                 # print(steps_so_far,steps_per_iteration)
+            print (samples)
 
             # compute the expected returns
             v_s = self.compute_expected_return(samples)
@@ -588,7 +599,7 @@ ADDITIONAL_ENV_PARAMS = {
     # desired velocity for all vehicles in the network, in m/s
     "target_velocity": 25,
     # maximum number of controllable vehicles in the network
-    "num_rl": 500,  # TODO: get good number
+    "num_rl": 50,  # TODO: get good number
 }
 
 
@@ -596,7 +607,7 @@ ADDITIONAL_ENV_PARAMS = {
 from hw3_utils import get_params, HORIZON
 
 sumo_params, env_params, scenario = get_params()
-env_params.additional_params={"max_accel": 3,"max_decel": 3,"target_velocity": 25,"num_rl": 500}
+env_params.additional_params={"max_accel": 3,"max_decel": 3,"target_velocity": 25,"num_rl": 50}
 
 
 env = WaveAttenuationMergePOEnv(env_params=env_params, 
