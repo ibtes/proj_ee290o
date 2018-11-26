@@ -214,9 +214,8 @@ class DirectPolicyAlgorithm(object):
     def cleanState(self,state):
         numObservation=7
         cleanState=[]
-        for i in range(len(state)):
-            if ((i+1)%7)!=0:
-                cleanState.append(state[i])
+        for i in range(int(len(state)/numObservation)):
+            cleanState.append(state[i*numObservation:i*numObservation+(numObservation-1)])
         return cleanState
 
     def rollout(self):
@@ -244,8 +243,13 @@ class DirectPolicyAlgorithm(object):
             steps += 1
 
             # compute the action given the state
-            action = self.compute_action([self.cleanState(state)])
-            action=action[0]
+            action=[]
+            cleanState=self.cleanState(state)
+            for cs in cleanState:
+                ac=self.compute_action([cs])
+                action.append(ac[0])
+            # action = self.compute_action([self.cleanState(state)])
+            # action=action[0]
             # input(action)
             # advance the environment once and collect the next state, 
             # reward, done, and info parameters from the environment

@@ -98,7 +98,7 @@ class WaveAttenuationMergePOEnv(Env):
         return Box(
             low=0,
             high=1,
-            shape=(3 * self.num_rl, ),
+            shape=(3 , ),
             dtype=np.float32)
 
     def denormalize(self, value, action_type):
@@ -123,7 +123,7 @@ class WaveAttenuationMergePOEnv(Env):
     @property
     def observation_space(self):
         """See class definition."""
-        return Box(low=0, high=1, shape=(6 * self.num_rl, ), dtype=np.float32)
+        return Box(low=0, high=1, shape=(6 , ), dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
         """See class definition."""
@@ -210,14 +210,15 @@ class WaveAttenuationMergePOEnv(Env):
         This method performs to auxiliary tasks:
 
         * Define which vehicles are observed for visualization purposes.
-* Maintains the "rl_veh" and "rl_queue" variables to ensure the RL
-vehicles that are represented in the state space does not change
-until one of the vehicles in the state space leaves the network.
-Then, the next vehicle in the queue is added to the state space and
-provided with actions from the policy.         """         # add rl vehicles
-that just entered the network into the rl queue         for veh_id in
-self.vehicles.get_rl_ids():             if veh_id not in list(self.rl_queue) +
-self.rl_veh:                 self.rl_queue.append(veh_id)
+        * Maintains the "rl_veh" and "rl_queue" variables to ensure the RL
+        vehicles that are represented in the state space does not change
+        until one of the vehicles in the state space leaves the network.
+        Then, the next vehicle in the queue is added to the state space and
+        provided with actions from the policy.         """         
+        # add rl vehicles that just entered the network into the rl queue         
+        for veh_id in self.vehicles.get_rl_ids():
+            if veh_id not in list(self.rl_queue) + self.rl_veh:
+                self.rl_queue.append(veh_id)
 
         # remove rl vehicles that exited the network
         for veh_id in list(self.rl_queue):
@@ -235,7 +236,7 @@ self.rl_veh:                 self.rl_queue.append(veh_id)
         # specify observed vehicles
         for veh_id in self.leader + self.follower:
             self.vehicles.set_observed(veh_id)
-        print (self.rl_veh,self.num_rl)
+        print (self.rl_veh,self.rl_queue)
 
     def reset(self):
         """See parent class.
