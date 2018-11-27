@@ -405,8 +405,6 @@ class REINFORCE(DirectPolicyAlgorithm):
                     steps_so_far +=  n_s["action"].shape[0]
                     samples.append(n_s)
                 # print(steps_so_far,steps_per_iteration)
-            print (samples)
-
             # compute the expected returns
             v_s = self.compute_expected_return(samples)
 
@@ -582,47 +580,70 @@ class REINFORCE(DirectPolicyAlgorithm):
         ##############################################################
         self.sess.run(self.opt, feed_dict={self.s_t_ph:states, self.a_t_ph:actions, self.rew_ph:v_s })  ### FILL IN ###
 
+def train_REINFORCE():
+    from flow.envs.base_env import Env
+    from flow.core import rewards
 
-from flow.envs.base_env import Env
-from flow.core import rewards
+    from gym.spaces.box import Box
 
-from gym.spaces.box import Box
+    import numpy as np
+    import collections
+
+    ADDITIONAL_ENV_PARAMS = {
+        # maximum acceleration for autonomous vehicles, in m/s^2
+        "max_accel": 3,
+        # maximum deceleration for autonomous vehicles, in m/s^2
+        "max_decel": 3,
+        # desired velocity for all vehicles in the network, in m/s
+        "target_velocity": 25,
+        # maximum number of controllable vehicles in the network
+        "num_rl": 50,  # TODO: get good number
+    }
+
+
+    ### creating the gym environment
+    from hw3_utils import get_params, HORIZON
+
+    sumo_params, env_params, scenario = get_params()
+    env_params.additional_params={"max_accel": 3,"max_decel": 3,"target_velocity": 25,"num_rl": 50}
+
+
+    env = WaveAttenuationMergePOEnv(env_params=env_params, 
+                                sumo_params=sumo_params, 
+                                scenario=scenario)
+    env._max_episode_steps = HORIZON
+
+
+    ### training on REINFORCE
+    import numpy as np
+    alg = REINFORCE(env, stochastic=True)
+
+    # feel free to modify the hyperparameters
+    cum_rewards = alg.train(learning_rate=0.1, gamma=0.99,
+                            steps_per_iteration=3000, num_iterations=300)
+
+    alg.save_checkpoint("REINFORCE.ckpt")
+    np.savetxt("REINFORCE.csv", cum_rewards, delimiter=",")
 
 import numpy as np
-import collections
+from hw3_utils import plot_results
 
-ADDITIONAL_ENV_PARAMS = {
-    # maximum acceleration for autonomous vehicles, in m/s^2
-    "max_accel": 3,
-    # maximum deceleration for autonomous vehicles, in m/s^2
-    "max_decel": 3,
-    # desired velocity for all vehicles in the network, in m/s
-    "target_velocity": 25,
-    # maximum number of controllable vehicles in the network
-    "num_rl": 50,  # TODO: get good number
-}
+res_REINFORCE = np.array([np.genfromtxt("REINFORCE.csv")])
+all_results = [res_REINFORCE]
+labels = ["REINFORCE"]
+plot_results(all_results, labels)
 
-
-### creating the gym environment
 from hw3_utils import get_params, HORIZON
 
-sumo_params, env_params, scenario = get_params()
+sumo_params, env_params, scenario = get_params(render=True)
 env_params.additional_params={"max_accel": 3,"max_decel": 3,"target_velocity": 25,"num_rl": 50}
-
-
 env = WaveAttenuationMergePOEnv(env_params=env_params, 
                             sumo_params=sumo_params, 
                             scenario=scenario)
-env._max_episode_steps = HORIZON
+env._max_episode_steps = 1500
+
+alg = DirectPolicyAlgorithm(env, stochastic=True)
+alg.load_checkpoint("REINFORCE" + ".ckpt")
+samples = alg.rollout()
 
 
-### training on REINFORCE
-import numpy as np
-alg = REINFORCE(env, stochastic=True)
-
-# feel free to modify the hyperparameters
-cum_rewards = alg.train(learning_rate=0.1, gamma=0.99,
-                        steps_per_iteration=3000, num_iterations=300)
-
-alg.save_checkpoint("REINFORCE.ckpt")
-np.savetxt("REINFORCE.csv", cum_rewards, delimiter=",")
