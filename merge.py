@@ -2,7 +2,6 @@
 Environments for training vehicles to reduce congestion in a merge.
 
 This environment was used in:
-TODO(ak): add paper after it has been published.
 """
 
 from flow.envs.base_env import Env
@@ -26,7 +25,6 @@ ADDITIONAL_ENV_PARAMS = {
 
 
 class WaveAttenuationMergePOEnv(Env):
-    # TODO: fix docstring
     """Partially observable merge environment.
 
     This environment is used to train autonomous vehicles to attenuate the
@@ -86,6 +84,8 @@ class WaveAttenuationMergePOEnv(Env):
         # used for visualization
         self.leader = []
         self.follower = []
+        self.name={}
+        self.count=0
         self.communication = [0 for _ in range(self.num_rl)]
 
         super().__init__(env_params, sumo_params, scenario)
@@ -98,7 +98,7 @@ class WaveAttenuationMergePOEnv(Env):
         return Box(
             low=0,
             high=1,
-            shape=(3 , ),
+            shape=(3,),
             dtype=np.float32)
 
     def denormalize(self, value, action_type):
@@ -106,13 +106,13 @@ class WaveAttenuationMergePOEnv(Env):
         value: value between 0 and 1
         type: type of the action: 1 for acceleration, 2 for lane change and 3 for communication'''
         if action_type == 1:
-            return np.array(value)*(self.env_params.additional_params["max_accel"] +
-                            abs(self.env_params.additional_params["max_decel"])) +\
+            return np.array(value) * (self.env_params.additional_params["max_accel"] +
+                                      abs(self.env_params.additional_params["max_decel"])) + \
                    -abs(self.env_params.additional_params["max_decel"])
         elif action_type == 2:
-            value[np.where(value>=2/3)]=1
-            value[np.where(value<=1/3)]=-1
-            value[np.where((value>=1/3)&(value<=2/3))]=0
+            value[np.where(value >= 2 / 3)] = 1
+            value[np.where(value <= 1 / 3)] = -1
+            value[np.where((value >= 1 / 3) & (value <= 2 / 3))] = 0
             return value
         elif action_type == 3:
             # TODO: define communication variable range
@@ -121,19 +121,23 @@ class WaveAttenuationMergePOEnv(Env):
     @property
     def observation_space(self):
         """See class definition."""
-        return Box(low=0, high=1, shape=(6 , ), dtype=np.float32)
+        return Box(low=0, high=1, shape=(6,), dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
         """See class definition."""
-        rl_actions=np.array(rl_actions)/2+0.5
-        self.apply_acceleration(self.vehicles.get_rl_ids(), 
+        rl_actions = np.array(rl_actions) / 2 + 0.5
+        # ok this is the problem. self.vehicles.num_rl_vehicles is 20, which matches the size,
+        # but rl_actions[:self.vehicles.num_rl_vehicles] somehow only has size 15
+        # 20 rl vehicles but only 15 actions for all (not only acceleration, but all)??
+        self.apply_acceleration(self.vehicles.get_rl_ids(),
                                 self.denormalize(rl_actions[:self.vehicles.num_rl_vehicles], 1))
-        self.apply_lane_change(self.vehicles.get_rl_ids(), 
-                               self.denormalize(rl_actions[self.num_rl: self.num_rl + self.vehicles.num_rl_vehicles], 2))
+        self.apply_lane_change(self.vehicles.get_rl_ids(),
+                               self.denormalize(rl_actions[self.num_rl: self.num_rl + self.vehicles.num_rl_vehicles],
+                                                2))
 
         # self.communication = []
         # for i, rl_id in enumerate(self.rl_veh):
-            # self.communication.append(self.denormalize(rl_actions[2 * self.num_rl + i], 3))
+        # self.communication.append(self.denormalize(rl_actions[2 * self.num_rl + i], 3))
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -158,7 +162,7 @@ class WaveAttenuationMergePOEnv(Env):
                 self.leader.append(lead_id)
                 lead_speed = self.vehicles.get_speed(lead_id)
                 lead_head = self.get_x_by_id(lead_id) \
-                    - self.get_x_by_id(rl_id) - self.vehicles.get_length(rl_id)
+                            - self.get_x_by_id(rl_id) - self.vehicles.get_length(rl_id)
 
             if follower in ["", None]:
                 # in case follower is not visible
@@ -172,15 +176,17 @@ class WaveAttenuationMergePOEnv(Env):
             # TODO: try local communication (so maybe nearest neighbors in each lane in front and behind)
             comm = (np.sum(self.communication) - self.communication[i]) / (len(self.communication) - 1)
 
-            observation[5 * i + 0] = this_speed / max_speed
-            observation[5 * i + 1] = (lead_speed - this_speed) / max_speed
-            observation[5 * i + 2] = lead_head / max_length
-            observation[5 * i + 3] = (this_speed - follow_speed) / max_speed
-            observation[5 * i + 4] = follow_head / max_length
-            observation[5 * i + 5] = comm
+            observation[7 * i + 0] = this_speed / max_speed
+            observation[7 * i + 1] = (lead_speed - this_speed) / max_speed
+            observation[7 * i + 2] = lead_head / max_length
+            observation[7 * i + 3] = (this_speed - follow_speed) / max_speed
+            observation[7 * i + 4] = follow_head / max_length
+            observation[7 * i + 5] = comm
             # TODO: try position, lane, lane leaders and followers, route (1, 2, 3, 4)
-            observation[5 * i + 6] = self.only_numerics(rl_id)  # FIXME: this is a string, not int
-
+            if rl_id not in self.name:
+                self.name[rl_id]=self.count
+                self.count=self.count+1
+            observation[7 * i + 6] = self.name[rl_id]  # self.only_numerics(rl_id) #
         return observation
 
     @staticmethod
@@ -190,6 +196,9 @@ class WaveAttenuationMergePOEnv(Env):
 
     def compute_reward(self, rl_actions, **kwargs):
         """See class definition."""
+        if kwargs["fail"]:
+            return -5000
+
         return -1
 
     def sort_by_position(self):
@@ -212,7 +221,7 @@ class WaveAttenuationMergePOEnv(Env):
         vehicles that are represented in the state space does not change
         until one of the vehicles in the state space leaves the network.
         Then, the next vehicle in the queue is added to the state space and
-        provided with actions from the policy.         """         
+        provided with actions from the policy.         """
         # add rl vehicles that just entered the network into the rl queue         
         for veh_id in self.vehicles.get_rl_ids():
             if veh_id not in list(self.rl_queue) + self.rl_veh:
@@ -234,7 +243,7 @@ class WaveAttenuationMergePOEnv(Env):
         # specify observed vehicles
         for veh_id in self.leader + self.follower:
             self.vehicles.set_observed(veh_id)
-        
+
     def reset(self):
         """See parent class.
 

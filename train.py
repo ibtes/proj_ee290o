@@ -7,11 +7,11 @@ from merge import WaveAttenuationMergePOEnv
 
 class DirectPolicyAlgorithm(object):
 
-    def __init__(self, 
+    def __init__(self,
                  env,
                  linear=False,
                  stochastic=False,
-                 hidden_size=[64, 64], 
+                 hidden_size=[64, 64],
                  nonlinearity=tf.nn.relu):
         """Instantiate the policy iteration class.
 
@@ -46,13 +46,13 @@ class DirectPolicyAlgorithm(object):
         """
         # clear any previous computation graph
         tf.reset_default_graph()
-        
+
         # set a random seed
         tf.set_random_seed(1234)
-        
+
         # start a tensorflow session
         self.sess = tf.Session()
-        
+
         # environment to train on
         self.env = env
 
@@ -66,13 +66,13 @@ class DirectPolicyAlgorithm(object):
         self.mean_state = np.zeros(self.obs_dim)
 
         # actions placeholder
-        self.a_t_ph = tf.placeholder(dtype=tf.float32, 
+        self.a_t_ph = tf.placeholder(dtype=tf.float32,
                                      shape=[None, self.ac_dim])
         # state placeholder
-        self.s_t_ph = tf.placeholder(dtype=tf.float32, 
+        self.s_t_ph = tf.placeholder(dtype=tf.float32,
                                      shape=[None, self.obs_dim])
         # expected reward placeholder
-        self.rew_ph = tf.placeholder(dtype=tf.float32, 
+        self.rew_ph = tf.placeholder(dtype=tf.float32,
                                      shape=[None])
 
         # specifies whether the policy is stochastic
@@ -155,12 +155,12 @@ class DirectPolicyAlgorithm(object):
             # Note: To create this variable, use the `tf.get_variable`     #
             # function.                                                    #
             ################################################################
-            output_logstd =  tf.get_variable('output_logstd',shape=[self.ac_dim], dtype=tf.float32)### FILL IN ###
+            output_logstd = tf.get_variable('output_logstd', shape=[self.ac_dim], dtype=tf.float32)  ### FILL IN ###
         else:
             output_logstd = None
 
         return output_mean, output_logstd
-    
+
     def action_op(self):
         """Create a symbolic expression that will be used to compute 
         actions from observations.
@@ -189,10 +189,11 @@ class DirectPolicyAlgorithm(object):
             # In order to generate numbers from a normal distribution,   #
             # use the `tf.random_normal` function.                       #
             ##############################################################
-            symbolic_action = output_mean + tf.exp(output_logstd)*tf.random_normal(shape=[self.ac_dim])### FILL IN ###
+            symbolic_action = output_mean + tf.exp(output_logstd) * tf.random_normal(
+                shape=[self.ac_dim])  ### FILL IN ###
         else:
             symbolic_action, _ = self.policy
-        
+
         return symbolic_action
 
     def compute_action(self, obs):
@@ -208,14 +209,14 @@ class DirectPolicyAlgorithm(object):
         np.ndarray
             actions by the policy for a given observation
         """
-        return self.sess.run(self.symbolic_action, 
+        return self.sess.run(self.symbolic_action,
                              feed_dict={self.s_t_ph: obs})
 
-    def cleanState(self,state):
-        numObservation=7
-        cleanState=[]
-        for i in range(int(len(state)/numObservation)):
-            cleanState.append(state[i*numObservation:i*numObservation+(numObservation-1)])
+    def cleanState(self, state):
+        numObservation = 7
+        cleanState = []
+        for i in range(int(len(state) / numObservation)):
+            cleanState.append(state[i * numObservation:i * numObservation + (numObservation - 1)])
         return cleanState
 
     def rollout(self):
@@ -236,34 +237,35 @@ class DirectPolicyAlgorithm(object):
 
         # start a new rollout by resetting the environment and 
         # collecting the initial state
-        state =  self.env.reset()
-
+        state = self.env.reset()
         steps = 0
         while True:
             steps += 1
 
             # compute the action given the state
-            a1=[]
-            a2=[]
-            a3=[]
-            a4=[]
-            action=[]
-            cleanState=self.cleanState(state)
+            # TODO: define 1 2 3 4. How many actions are there???
+            # ok... only 5 rls, but get_rl_ids gives 20 rls?
+            a1 = []
+            a2 = []
+            a3 = []
+            a4 = []  # communication?
+            action = []
+            cleanState = self.cleanState(state)
             for cs in cleanState:
-                ac=self.compute_action([cs])
+                ac = self.compute_action([cs])
                 a1.append(ac[0][0])
                 a2.append(ac[0][1])
                 a3.append(ac[0][2])
                 a4.append(ac[0][0])
                 a4.append(ac[0][1])
                 a4.append(ac[0][2])
-            action=a1+a2+a3
+            action = a1 + a2 + a3
             # action = self.compute_action([self.cleanState(state)])
             # action=action[0]
             # input(action)
             # advance the environment once and collect the next state, 
             # reward, done, and info parameters from the environment
-            next_state, reward, done, info =  self.env.step(action)
+            next_state, reward, done, info = self.env.step(action)
             # v,l_v,l_h,f_v,f_h,comm,id
             # add to the samples list
             states.append(state)
@@ -276,40 +278,48 @@ class DirectPolicyAlgorithm(object):
 
             # if the environment returns a True for the done parameter,
             # end the rollout before the time horizon is met
-            if done or steps > env._max_episode_steps:
+            if done or steps > self.env._max_episode_steps:
                 break
-        
-        veh_traj_obj={}
+
+        veh_traj_obj = {}
         for i in range(len(states)):
-            for j in range(int(len(states[i])/7)):
-                num_nonzero= np.count_nonzero(states[i][j*7:j*7+7])
-                if (num_nonzero==0):
+            for j in range(int(len(states[i]) / 7)):
+                num_nonzero = np.count_nonzero(states[i][j * 7:j * 7 + 7])
+                if (num_nonzero == 0):
                     pass
                 else:
-                    veh_id=states[i][j*7+6]
+                    veh_id = states[i][j * 7 + 6]
                     if veh_id not in veh_traj_obj:
-                        veh_traj_obj[veh_id]={"state":[],"action":[],"reward":[],"next_state":[],"done":[]}
-                    veh_traj_obj[veh_id]["state"].append(states[i][j*7:j*7+6])
+                        veh_traj_obj[veh_id] = {"state": [], "action": [], "reward": [], "next_state": [], "done": []}
+                    veh_traj_obj[veh_id]["state"].append(states[i][j * 7:j * 7 + 6])
                     veh_traj_obj[veh_id]["done"].append(dones[i])
-                    veh_traj_obj[veh_id]["action"].append(actions[i][j*3:j*3+3])
+                    veh_traj_obj[veh_id]["action"].append(actions[i][j * 3:j * 3 + 3])
                     veh_traj_obj[veh_id]["reward"].append(rewards[i])
-                    veh_traj_obj[veh_id]["next_state"].append(next_states[i][j*7:j*7+6])
-        
-        trajectory=[]
+                    veh_traj_obj[veh_id]["next_state"].append(next_states[i][j * 7:j * 7 + 6])
+
+        final_stage_ids = []
+        for i in range(int(len(states[len(states)-1])/7)):
+            if states[len(states)-1][i*7+6]!=0:
+                final_stage_ids.append(states[len(states)-1][i*7+6])
+        for i in range(int(len(states[0])/7)):
+            if states[0][i*7+6]!=0:
+                final_stage_ids.append(states[0][i*7+6])
+        trajectory = []
         for elem in veh_traj_obj:
-            veh_traj_obj[elem]["state"]=np.array(veh_traj_obj[elem]["state"], dtype=np.float32)
-            veh_traj_obj[elem]["reward"]=np.array(veh_traj_obj[elem]["reward"], dtype=np.float32)
-            veh_traj_obj[elem]["action"]=np.array(veh_traj_obj[elem]["action"], dtype=np.float32)
-            veh_traj_obj[elem]["done"]=np.array(veh_traj_obj[elem]["done"], dtype=np.float32)
-            veh_traj_obj[elem]["next_state"]=np.array(veh_traj_obj[elem]["next_state"], dtype=np.float32)
-            trajectory.append(veh_traj_obj[elem])
-            
+            if elem not in final_stage_ids:
+                veh_traj_obj[elem]["state"] = np.array(veh_traj_obj[elem]["state"], dtype=np.float32)
+                veh_traj_obj[elem]["reward"] = np.array(veh_traj_obj[elem]["reward"], dtype=np.float32)
+                veh_traj_obj[elem]["action"] = np.array(veh_traj_obj[elem]["action"], dtype=np.float32)
+                veh_traj_obj[elem]["done"] = np.array(veh_traj_obj[elem]["done"], dtype=np.float32)
+                veh_traj_obj[elem]["next_state"] = np.array(veh_traj_obj[elem]["next_state"], dtype=np.float32)
+                trajectory.append(veh_traj_obj[elem])
+
         # create the output trajectory
-#         trajectory = {"state": np.array(states, dtype=np.float32),
-#                       "reward": np.array(rewards, dtype=np.float32),
-#                       "action": np.array(actions, dtype=np.float32),
-#                       "next_state": np.array(next_states, dtype=np.float32),
-#                       "done": np.array(dones, dtype=np.float32)}
+        #         trajectory = {"state": np.array(states, dtype=np.float32),
+        #                       "reward": np.array(rewards, dtype=np.float32),
+        #                       "action": np.array(actions, dtype=np.float32),
+        #                       "next_state": np.array(next_states, dtype=np.float32),
+        #                       "done": np.array(dones, dtype=np.float32)}
 
         return trajectory
 
@@ -343,13 +353,14 @@ import tensorflow as tf
 import numpy as np
 import time
 
+
 class REINFORCE(DirectPolicyAlgorithm):
 
     def train(self,
               num_iterations=100,
               steps_per_iteration=1000,
               learning_rate=0.001,
-              gamma=0.95, 
+              gamma=0.95,
               **kwargs):
         """Perform the REINFORE training operation.
 
@@ -374,7 +385,7 @@ class REINFORCE(DirectPolicyAlgorithm):
         """
         # set the discount as an attribute
         self.gamma = gamma
-        
+
         # set the learning rate as an attribute
         self.learning_rate = learning_rate
 
@@ -393,7 +404,7 @@ class REINFORCE(DirectPolicyAlgorithm):
 
         # average return per training iteration
         ret_per_iteration = []
-        
+
         samples = []
         for i in range(num_iterations):
             # collect samples from the current policy
@@ -401,11 +412,11 @@ class REINFORCE(DirectPolicyAlgorithm):
             steps_so_far = 0
             while steps_so_far < steps_per_iteration:
                 new_samples = self.rollout()
+                # print(len(new_samples))
                 for n_s in new_samples:
-                    steps_so_far +=  n_s["action"].shape[0]
+                    steps_so_far += n_s["action"].shape[0]
                     samples.append(n_s)
                 # print(steps_so_far,steps_per_iteration)
-            print (samples)
 
             # compute the expected returns
             v_s = self.compute_expected_return(samples)
@@ -415,7 +426,7 @@ class REINFORCE(DirectPolicyAlgorithm):
 
             # compute the average cumulative return per iteration
             average_rew = np.mean([sum(s["reward"]) for s in samples])
-
+            # print([sum(s["reward"]) for s in samples])
             # display iteration statistics
             print("Iteration {} return: {}".format(i, average_rew))
             ret_per_iteration.append(average_rew)
@@ -458,8 +469,8 @@ class REINFORCE(DirectPolicyAlgorithm):
         # For this operation, you will want to use placeholders      #
         # created in the __init__ method of problem 1.               #
         ##############################################################
-        p = tf.contrib.distributions.MultivariateNormalDiag(loc=output_mean,scale_diag=tf.exp(output_logstd))
-        log_likelihoods =  p.log_prob(self.a_t_ph)### FILL IN ###
+        p = tf.contrib.distributions.MultivariateNormalDiag(loc=output_mean, scale_diag=tf.exp(output_logstd))
+        log_likelihoods = p.log_prob(self.a_t_ph)  ### FILL IN ###
 
         return log_likelihoods
 
@@ -499,7 +510,7 @@ class REINFORCE(DirectPolicyAlgorithm):
         #                                                            #
         # You will be able to test this in one of the cells below!   #
         ##############################################################
-        v_s = []### FILL IN ###
+        v_s = []  ### FILL IN ###
         for r_i in rewards:
             r = []
             size = len(r_i)
@@ -509,10 +520,11 @@ class REINFORCE(DirectPolicyAlgorithm):
                 else:
                     r.append(self.gamma * r[i - 1] + r_i[size - i - 1])
             v_s.append(r[::-1])
-        #flatten
+        # flatten
         v_s = [i for j in v_s for i in j]
+        #print(v_s)
         return v_s
-        
+
     def define_updates(self, log_likelihoods):
         """Create a tensorflow operation to update the parameters of 
         your policy.
@@ -542,7 +554,7 @@ class REINFORCE(DirectPolicyAlgorithm):
         # created in the __init__ method of problem 1, as well as    #
         # the operations provided as inputs to this problem.         #
         ##############################################################
-        loss =  -tf.reduce_mean(tf.reduce_sum(tf.multiply(self.rew_ph,log_likelihoods)))### FILL IN ###
+        loss = -tf.reduce_mean(tf.reduce_sum(tf.multiply(self.rew_ph, log_likelihoods)))  ### FILL IN ###
         opt = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
 
         return opt, None
@@ -550,7 +562,7 @@ class REINFORCE(DirectPolicyAlgorithm):
     def call_updates(self,
                      log_likelihoods,
                      samples,
-                     v_s, 
+                     v_s,
                      **kwargs):
         """Apply the gradient update methods in a tensorflow session.
 
@@ -580,8 +592,8 @@ class REINFORCE(DirectPolicyAlgorithm):
         # this problem as well as the __init__ method in problem 1   # 
         # when doing so.                                             #
         ##############################################################
-        self.sess.run(self.opt, feed_dict={self.s_t_ph:states, self.a_t_ph:actions, self.rew_ph:v_s })  ### FILL IN ###
-
+        self.sess.run(self.opt,
+                      feed_dict={self.s_t_ph: states, self.a_t_ph: actions, self.rew_ph: v_s})  ### FILL IN ###
 
 from flow.envs.base_env import Env
 from flow.core import rewards
@@ -603,26 +615,23 @@ ADDITIONAL_ENV_PARAMS = {
 }
 
 
-### creating the gym environment
-from hw3_utils import get_params, HORIZON
+if __name__ == "__main__":
+    ### creating the gym environment
+    from hw3_utils import get_params, HORIZON
 
-sumo_params, env_params, scenario = get_params()
-env_params.additional_params={"max_accel": 3,"max_decel": 3,"target_velocity": 25,"num_rl": 50}
+    sumo_params, env_params, scenario = get_params(render=False)
+    env_params.additional_params = {"max_accel": 3, "max_decel": 3, "target_velocity": 25, "num_rl": 50}
 
+    env = WaveAttenuationMergePOEnv(env_params=env_params,
+                                    sumo_params=sumo_params,
+                                    scenario=scenario)
+    env._max_episode_steps = HORIZON
 
-env = WaveAttenuationMergePOEnv(env_params=env_params, 
-                            sumo_params=sumo_params, 
-                            scenario=scenario)
-env._max_episode_steps = HORIZON
+    alg = REINFORCE(env, stochastic=True)
 
+    # feel free to modify the hyperparameters
+    cum_rewards = alg.train(learning_rate=0.1, gamma=0.99,
+                            steps_per_iteration=1000, num_iterations=300)
 
-### training on REINFORCE
-import numpy as np
-alg = REINFORCE(env, stochastic=True)
-
-# feel free to modify the hyperparameters
-cum_rewards = alg.train(learning_rate=0.1, gamma=0.99,
-                        steps_per_iteration=3000, num_iterations=300)
-
-alg.save_checkpoint("REINFORCE.ckpt")
-np.savetxt("REINFORCE.csv", cum_rewards, delimiter=",")
+    alg.save_checkpoint("REINFORCE.ckpt")
+    np.savetxt("REINFORCE.csv", cum_rewards, delimiter=",")

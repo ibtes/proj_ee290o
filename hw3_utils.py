@@ -8,11 +8,11 @@ from flow.controllers import IDMController, RLController
 from routing_controllers import WeaveRouter
 from merge import WaveAttenuationMergePOEnv, ADDITIONAL_ENV_PARAMS
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
-HORIZON = 750
-FLOW_RATE=250
+HORIZON = 750/2
+FLOW_RATE=300
 
 
 def get_params(render=False):
@@ -33,7 +33,7 @@ def get_params(render=False):
         a flow-compatible scenario object
     """
     sumo_params = SumoParams(
-        render=False,
+        # render=True,
         sim_step=0.4,
         sumo_binary="sumo-gui" if render else "sumo",
         seed=0,
@@ -83,10 +83,13 @@ def get_params(render=False):
         lane_change_mode="strategic",
         num_vehicles=5)
 
+    additional_env_params = ADDITIONAL_ENV_PARAMS.copy()
+    additional_env_params["num_rl"] = 20
+
     env_params = EnvParams(
-        additional_params=ADDITIONAL_ENV_PARAMS,
+        additional_params=additional_env_params,
         sims_per_step=5,
-        warmup_steps=0)
+        warmup_steps=0,)
 
     
     inflow = InFlows()
@@ -105,13 +108,13 @@ def get_params(render=False):
     inflow.add(
         veh_type="3",
         edge="inflow_merge",
-        vehs_per_hour=50,  # TODO: change
+        vehs_per_hour=FLOW_RATE * 0.1,  # TODO: change
         departLane="free",
         departSpeed=7.5)
     inflow.add(
         veh_type="4",
         edge="inflow_merge",
-        vehs_per_hour=50,  # TODO: change
+        vehs_per_hour=FLOW_RATE * 0.1,  # TODO: change
         departLane="free",
         departSpeed=7.5)
 
