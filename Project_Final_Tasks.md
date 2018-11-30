@@ -10,8 +10,8 @@ Report
 Title page: 1 page
 1. introduction: easy: 1 page
 2. previous work & literature review: papers we presented: 1 page
-3. method: discribing the scenario. observation spaces, action spaces, reward functions. communication. algorithm we are using. lane-changing model: 2 pages
-4. experiment: one experiment for each thing we tried. computational consideration: 1-2
+3. method: observation spaces, action spaces, reward functions. communication. algorithm we are using. lane-changing model: 2 pages
+4. experiment: discribing the scenario. one experiment for each thing we tried. computational consideration: 1-2
 5. results: results (not good). explanations. why. 1-2
 6. discussion / conclusion. 1
 7. future work: talk talk… 1
