@@ -1,5 +1,6 @@
 reward functions:
 
+0. check Bingyi's implementation of additional features and communication
 1. -1 * total_num_veh
 2. reward based on speed
 3. penalize large number of lane switches
